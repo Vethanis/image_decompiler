@@ -1,5 +1,6 @@
 /build
 /bin
+/assets
 *.o
 *.obj
 /.vscode
