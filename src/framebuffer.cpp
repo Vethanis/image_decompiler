@@ -69,17 +69,20 @@ void Framebuffer::bind()
 
 void Framebuffer::download(vec4* texels, int attachment)
 {
-    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT); DebugGL();
     glBindTexture(GL_TEXTURE_2D, m_attachments[attachment]); DebugGL();
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, (float*)texels); DebugGL();
 }
 
 void Framebuffer::download(vec4* texels, int attachment, int mipLevel)
 {
-    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT); DebugGL();
     glBindTexture(GL_TEXTURE_2D, m_attachments[attachment]); DebugGL();
     glGenerateMipmap(GL_TEXTURE_2D); DebugGL();
     glGetTexImage(GL_TEXTURE_2D, mipLevel, GL_RGBA, GL_FLOAT, (float*)texels); DebugGL();
+}
+
+void Framebuffer::Barrier()
+{
+    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT); DebugGL();
 }
 
 void Framebuffer::saveToFile(const char* filename, int attachment)

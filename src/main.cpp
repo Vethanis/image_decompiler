@@ -16,27 +16,12 @@
 #include "framebuffer.h"
 #include "vertexbuffer.h"
 #include "mesh.h"
-#include <thread>
-
-void FpsStats()
-{
-    static double average_dt = 0.0;
-    average_dt += frameSeconds();
-
-    if((frameCounter() & 63) == 0)
-    {
-        average_dt /= 64.0;
-        const double ms = average_dt * 1000.0;
-        printf("ms: %.6f, FPS: %.3f\n", ms, 1.0 / average_dt);
-        average_dt = 0.0;
-    }
-}
 
 struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 16,
+        NumChoices = 8,
     };
 
     Window m_window;
@@ -45,10 +30,10 @@ struct Renderer
     GLProgram m_diffShader;
     Texture m_texture;
     Mesh m_mesh;
-    Framebuffer m_diffFramebuffer;
     vec4* m_sourceImage;
 
     Framebuffer m_framebuffers[NumChoices];
+    Framebuffer m_diffbuffers[NumChoices];
     Vector<Vertex> m_vertices[NumChoices];
 
     unsigned m_width, m_height;
@@ -89,7 +74,10 @@ struct Renderer
         m_diffShader.setup(diffFiles, 2);
 
         m_sourceImage = new vec4[m_width * m_height];
-        m_diffFramebuffer.init(m_width, m_height, 1);
+        for(Framebuffer& frame : m_diffbuffers)
+        {
+            frame.init(m_width, m_height, 1);
+        }
         for(Framebuffer& frame : m_framebuffers)
         {
             frame.init(m_width, m_height, 1);
@@ -99,6 +87,7 @@ struct Renderer
         glClearColor(0.5f, 0.5f, 0.5f, 0.0f); DebugGL();
         glEnable(GL_BLEND); DebugGL();
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); DebugGL();
+        glViewport(0, 0, m_width, m_height); DebugGL();
 
         Reset();
         if(img.image)
@@ -122,15 +111,17 @@ struct Renderer
     }
     ~Renderer()
     {
-        m_diffFramebuffer.deinit();
         for(auto& frame : m_framebuffers)
+        {
+            frame.deinit();
+        }
+        for(auto& frame : m_diffbuffers)
         {
             frame.deinit();
         }
         m_mesh.deinit();
         m_circleShader.deinit();
         m_shader.deinit();
-        m_diffFramebuffer.deinit();
         m_texture.deinit();
 
         delete[] m_sourceImage;
@@ -190,18 +181,22 @@ struct Renderer
     {
         m_mesh.upload(vertices);
         destBuffer.bind();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         Framebuffer::clear();
         m_mesh.draw();
     }
-    double CalculateDifference(Framebuffer& buffer)
+    void DrawDifference(int idx)
     {
+        m_diffbuffers[idx].bind();
         Framebuffer::clear();
         m_diffShader.bindTexture(1, m_texture.handle, "A");
-        m_diffShader.bindTexture(2, buffer.m_attachments[0], "B");
+        m_diffShader.bindTexture(2, m_framebuffers[idx].m_attachments[0], "B");
         GLScreen::draw();
+    }
+    double CalculateDifference(int idx)
+    {
+        m_diffbuffers[idx].bind();
         vec4 dest[4*4];
-        m_diffFramebuffer.download(dest, 0, m_topMip);
+        m_diffbuffers[idx].download(dest, 0, m_topMip);
         double diff = 0.0;
         for(vec4& v : dest)
         {
@@ -229,11 +224,14 @@ struct Renderer
         }
 
         m_diffShader.bind();
-        m_diffFramebuffer.bind();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         for(int i = 0; i < NumChoices; ++i)
         {
-            diffs[i] = CalculateDifference(m_framebuffers[i]);
+            DrawDifference(i);
+        }
+        Framebuffer::Barrier();
+        for(int i = 0; i < NumChoices; ++i)
+        {
+            diffs[i] = CalculateDifference(i);
         }
 
         int bestDiffIdx = CurrentChoice();
@@ -335,7 +333,6 @@ struct Renderer
         }
         m_shader.setUniformInt("seed", rand(g_randSeed));
         Framebuffer::bindDefault();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         Framebuffer::clear();
         GLScreen::draw();
         m_window.swap();

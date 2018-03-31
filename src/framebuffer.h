@@ -16,6 +16,7 @@ struct Framebuffer
     static void clearDepth();
     static void clearColor();
     static void clear();
+    static void Barrier();
 
     enum eConstants : int
     {
