@@ -57,6 +57,7 @@ struct Renderer
     unsigned m_frameIdx = 0;
     int m_maxPrimitives;
     int m_topMip;
+    int m_imageId = 0;
 
     bool m_paused = false;
     bool m_viewFront = false;
@@ -138,7 +139,7 @@ struct Renderer
     void SaveImage()
     {
         char buffer[64] = {0};
-        snprintf(buffer, 64, "screenshots/choice_%d.png", m_frontFrame);
+        snprintf(buffer, 64, "screenshots/image_%d.png", m_imageId++);
         m_framebuffers[CurrentChoice()].saveToFile(buffer);
     }
     void CommitChange(int idx)
