@@ -24,5 +24,6 @@ void main()
     const float factor = 0.02;
     color.xyz -= vec3(factor);
     color.xyz += vec3(rand(s), rand(s), rand(s)) * factor;
+    color.w = 1.0;
     outColor = color;
 }

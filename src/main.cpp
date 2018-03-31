@@ -53,7 +53,7 @@ struct Renderer
 
     unsigned m_width, m_height;
     unsigned m_frontFrame = 0;
-    unsigned m_framesPerAdd = 100;
+    unsigned m_framesPerAdd = 1000;
     unsigned m_frameIdx = 0;
     int m_maxPrimitives;
     int m_topMip;
@@ -152,16 +152,13 @@ struct Renderer
     }
     void MakeRandomChange(Vector<Vertex>& vertices)
     {
-        const float alpha = 0.25f * randf();
-        float fpos = randf();
-        fpos = fpos * fpos;
-        fpos = 1.0f - fpos;
-        fpos = glm::clamp(fpos * float(PrimitiveCount()), 0.0f, float(PrimitiveCount() - 1));
-        const int primIdx = 3 * int(fpos);
-        const bool mutateColor = rand(g_randSeed) & 1;
-        if(mutateColor)
+        const int primIdx = 3 * (rand(g_randSeed) % (vertices.count() / 3));
+        if(rand(g_randSeed) & 1)
         {
-            vec4 color = glm::mix(vertices[primIdx].color, vec4(randf(), randf(), randf(), 1.0f), alpha);
+            vec4 color = vertices[primIdx].color;
+            float* comps = &color.x;
+            float& chosen = comps[rand(g_randSeed) % 3];
+            chosen = glm::mix(chosen, randf(), 0.5f);
             for(int i = 0; i < 3; ++i)
             {
                 vertices[primIdx + i].color = color;
@@ -169,9 +166,9 @@ struct Renderer
         }
         else
         {
-            Vertex& vert = vertices[rand(g_randSeed) % vertices.count()];
-            vert.position.x = glm::mix(vert.position.x, randf(), alpha);
-            vert.position.y = glm::mix(vert.position.y, randf(), alpha);
+            vec4& pos = vertices[rand(g_randSeed) % vertices.count()].position;
+            pos.x = glm::mix(pos.x, randf(), 0.5f);
+            pos.y = glm::mix(pos.y, randf(), 0.5f);
         }
     }
     void AddPrimitive(Vector<Vertex>& vertices)
@@ -188,11 +185,6 @@ struct Renderer
             vertex.color = vec4(color, 1.0f);
         }
         printf("Primitive count: %i\n", PrimitiveCount());
-
-        if(PrimitiveCount() % 10 == 0)
-        {
-            SaveImage();
-        }
     }
     void DrawIntoBuffer(const Vector<Vertex>& vertices, Framebuffer& destBuffer)
     {
@@ -255,6 +247,11 @@ struct Renderer
         }
 
         CommitChange(bestDiffIdx);
+
+        if((m_frameIdx % 10000) == 0)
+        {
+            SaveImage();
+        }
 
         ++m_frameIdx;
         if(m_frameIdx >= m_framesPerAdd && m_vertices[CurrentChoice()].count() < m_maxPrimitives * 3)
