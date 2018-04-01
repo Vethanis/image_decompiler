@@ -45,6 +45,6 @@ if [ "$1" == "debug" ] || [ "$2" == "debug" ] ; then
     echo ""
 else
     cd bin/Release
-    ./main.exe "moira4.png" 1000
+    ./main.exe "example.png" 1000
     cd ../..
 fi

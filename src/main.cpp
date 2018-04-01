@@ -38,11 +38,15 @@ struct Renderer
 
     unsigned m_width, m_height;
     unsigned m_frontFrame = 0;
-    unsigned m_framesPerAdd = 1000;
     unsigned m_frameIdx = 0;
+    unsigned m_secondsBetweenScreenshots = 60;
+
     int m_maxPrimitives;
     int m_topMip;
     int m_imageId = 0;
+    int m_currentChangeIdx = 0;
+
+    time_t m_lastScreenshot = 0;
 
     bool m_paused = false;
     bool m_viewFront = false;
@@ -84,7 +88,6 @@ struct Renderer
         }
         m_mesh.init();
 
-        glClearColor(0.5f, 0.5f, 0.5f, 0.0f); DebugGL();
         glEnable(GL_BLEND); DebugGL();
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); DebugGL();
         glViewport(0, 0, m_width, m_height); DebugGL();
@@ -129,13 +132,27 @@ struct Renderer
     int CurrentChoice() { return m_frontFrame; }
     void SaveImage()
     {
-        char buffer[64] = {0};
-        snprintf(buffer, 64, "screenshots/image_%d.png", m_imageId++);
-        m_framebuffers[CurrentChoice()].saveToFile(buffer);
+        if((m_frameIdx & 1023) == 0)
+        {
+            time_t curTime = time(nullptr);
+            time_t duration = curTime - m_lastScreenshot;
+            if(duration > time_t(m_secondsBetweenScreenshots))
+            {
+                char buffer[64] = {0};
+                snprintf(buffer, 64, "screenshots/image_%d.png", m_imageId++);
+                m_framebuffers[CurrentChoice()].saveToFile(buffer);
+                m_lastScreenshot = curTime;
+            }
+        }
     }
     void CommitChange(int idx)
     {
         m_frontFrame = idx;
+        m_currentChangeIdx--;
+        if(m_currentChangeIdx < 0)
+        {
+            m_currentChangeIdx = m_vertices[0].count() - 1;
+        }
     }
     int PrimitiveCount()
     {
@@ -143,12 +160,12 @@ struct Renderer
     }
     void MakeRandomChange(Vector<Vertex>& vertices)
     {
-        const int primIdx = 3 * (rand(g_randSeed) % (vertices.count() / 3));
-        if(rand(g_randSeed) & 1)
+        if(rand() & 1)
         {
+            const int primIdx = m_currentChangeIdx - (m_currentChangeIdx % 3);
             vec4 color = vertices[primIdx].color;
             float* comps = &color.x;
-            float& chosen = comps[rand(g_randSeed) % 3];
+            float& chosen = comps[rand() % 3];
             chosen = glm::mix(chosen, randf(), 0.5f);
             for(int i = 0; i < 3; ++i)
             {
@@ -157,7 +174,7 @@ struct Renderer
         }
         else
         {
-            vec4& pos = vertices[rand(g_randSeed) % vertices.count()].position;
+            vec4& pos = vertices[m_currentChangeIdx].position;
             pos.x = glm::mix(pos.x, randf(), 0.5f);
             pos.y = glm::mix(pos.y, randf(), 0.5f);
         }
@@ -246,13 +263,10 @@ struct Renderer
 
         CommitChange(bestDiffIdx);
 
-        if((m_frameIdx % 10000) == 0)
-        {
-            SaveImage();
-        }
+        SaveImage();
 
         ++m_frameIdx;
-        if(m_frameIdx >= m_framesPerAdd && m_vertices[CurrentChoice()].count() < m_maxPrimitives * 3)
+        if(m_frameIdx >= PrimitiveCount() && m_vertices[CurrentChoice()].count() < m_maxPrimitives * 3)
         {
             AddPrimitive(m_vertices[CurrentChoice()]);
             m_frameIdx = 0;
@@ -331,7 +345,7 @@ struct Renderer
             const Framebuffer& src = m_framebuffers[CurrentChoice()];
             m_shader.bindTexture(3, src.m_attachments[0], "current_frame");
         }
-        m_shader.setUniformInt("seed", rand(g_randSeed));
+        m_shader.setUniformInt("seed", rand());
         Framebuffer::bindDefault();
         Framebuffer::clear();
         GLScreen::draw();
@@ -342,7 +356,6 @@ struct Renderer
 
 int main(int argc, char* argv[])
 {
-    g_randSeed = (unsigned)time(NULL);
     if(argc < 2)
     {
         puts("Missing source image argument");
@@ -353,6 +366,8 @@ int main(int argc, char* argv[])
         puts("Missing vertex count argument");
         return 1;
     }
+
+    srand((unsigned)time(nullptr));
 
     Image img;
     img.load(argv[1]);
