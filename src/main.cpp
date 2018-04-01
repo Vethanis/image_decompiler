@@ -17,6 +17,10 @@
 #include "vertexbuffer.h"
 #include "mesh.h"
 
+constexpr float pi = 3.141592f;
+constexpr float tau = pi * 2.0f;
+constexpr float thetaPerVert = pi / 3.0f;
+
 struct Renderer
 {
     enum eConstants : int
@@ -36,6 +40,8 @@ struct Renderer
     Framebuffer m_diffbuffers[NumChoices];
     Vector<Vertex> m_vertices[NumChoices];
 
+    float m_alpha = 0.1f;
+
     unsigned m_width, m_height;
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
@@ -49,7 +55,6 @@ struct Renderer
     time_t m_lastScreenshot = 0;
 
     bool m_paused = false;
-    bool m_viewFront = false;
     bool m_showSource = false;
 
     Renderer(const Image& img, unsigned maj, unsigned min, const char* name, int max_prims) : m_window(img.width, img.height, maj, min, name)
@@ -160,37 +165,89 @@ struct Renderer
     }
     void MakeRandomChange(Vector<Vertex>& vertices)
     {
-        if(rand() & 1)
+        const int primIdx = m_currentChangeIdx - (m_currentChangeIdx % 3);
+        switch(rand() & 3)
         {
-            const int primIdx = m_currentChangeIdx - (m_currentChangeIdx % 3);
-            vec4 color = vertices[primIdx].color;
-            float* comps = &color.x;
-            float& chosen = comps[rand() % 3];
-            chosen = glm::mix(chosen, randf(), 0.5f);
-            for(int i = 0; i < 3; ++i)
+            case 0: // color
             {
-                vertices[primIdx + i].color = color;
+                vec4 color = vertices[primIdx].color;
+                float* comps = &color.x;
+                float& chosen = comps[rand() % 3];
+                chosen = glm::mix(chosen, randf(), m_alpha);
+                for(int i = 0; i < 3; ++i)
+                {
+                    vertices[primIdx + i].color = color;
+                }
             }
-        }
-        else
-        {
-            vec4& pos = vertices[m_currentChangeIdx].position;
-            pos.x = glm::mix(pos.x, randf(), 0.5f);
-            pos.y = glm::mix(pos.y, randf(), 0.5f);
+            break;
+            case 1: // radius
+            {
+                Vertex& origin = vertices[primIdx];
+                vec2 center(origin.position.x, origin.position.y);
+                float radius = origin.position.z;
+                float angle = origin.position.w;
+
+                radius = glm::mix(radius, randf(), m_alpha);
+                origin.position = vec4(center.x, center.y, radius, angle);
+                for(int i = 0; i < 2; ++i)
+                {
+                    float theta = thetaPerVert * float(i);
+                    float x = center.x + radius * glm::cos(angle * tau + theta);
+                    float y = center.y + radius * glm::sin(angle * tau + theta);
+                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
+                }
+            }
+            case 2: // angle
+            {
+                Vertex& origin = vertices[primIdx];
+                vec2 center(origin.position.x, origin.position.y);
+                float radius = origin.position.z;
+                float angle = origin.position.w;
+
+                angle = glm::mix(angle, randf(), m_alpha);
+                origin.position = vec4(center.x, center.y, radius, angle);
+                for(int i = 0; i < 2; ++i)
+                {
+                    float theta = thetaPerVert * float(i);
+                    float x = center.x + radius * glm::cos(angle * tau + theta);
+                    float y = center.y + radius * glm::sin(angle * tau + theta);
+                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
+                }
+            }
+            case 3: // center
+            {
+                Vertex& origin = vertices[primIdx];
+                vec2 center(origin.position.x, origin.position.y);
+                float radius = origin.position.z;
+                float angle = origin.position.w;
+
+                center = glm::mix(center, vec2(randf2(), randf2()), m_alpha);
+                origin.position = vec4(center.x, center.y, radius, angle);
+                for(int i = 0; i < 2; ++i)
+                {
+                    float theta = thetaPerVert * float(i);
+                    float x = center.x + radius * glm::cos(angle * tau + theta);
+                    float y = center.y + radius * glm::sin(angle * tau + theta);
+                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
+                }
+            }
         }
     }
     void AddPrimitive(Vector<Vertex>& vertices)
     {
         vec2 center(randf2(), randf2());
         vec3 color(randf(), randf(), randf());
-        const float len = 0.2f;
-        for(int i = 0; i < 3; ++i)
+        const float radius = 0.001f;
+        const float angle = randf();
+        Vertex& origin = vertices.grow();
+        origin.position = vec4(center.x, center.y, radius, angle);
+        for(int i = 0; i < 2; ++i)
         {
             Vertex& vertex = vertices.grow();
-            vec2 pt = center + len * normalize(vec2(randf2(), randf2()));
-            vertex.position.x = pt.x;
-            vertex.position.y = pt.y;
-            vertex.color = vec4(color, 1.0f);
+            float theta = thetaPerVert * float(i);
+            float x = center.x + radius * glm::cos(angle * tau + theta);
+            float y = center.y + radius * glm::sin(angle * tau + theta);
+            vertex.position = vec4(x, y, radius, angle);
         }
         printf("Primitive count: %i\n", PrimitiveCount());
     }
@@ -283,10 +340,6 @@ struct Renderer
     {
         m_paused = !m_paused;
     }
-    void ToggleViewFrontBuffer()
-    {
-        m_viewFront = !m_viewFront;
-    }
     void HandleInput()
     {
         for(int key : Input::GetDownKeys())
@@ -311,12 +364,6 @@ struct Renderer
                 case GLFW_KEY_F12:
                 {
                     SaveImage();
-                    break;
-                }
-                case GLFW_KEY_LEFT_SHIFT:
-                case GLFW_KEY_RIGHT_SHIFT:
-                {
-                    ToggleViewFrontBuffer();
                     break;
                 }
                 case GLFW_KEY_LEFT_ALT:
