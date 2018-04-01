@@ -146,7 +146,7 @@ struct Renderer
             if(duration > time_t(m_secondsBetweenScreenshots))
             {
                 char buffer[128] = {0};
-                snprintf(buffer, sizeof(buffer), "screenshots/%s_%d_%d.png", m_imageName, m_imageId++, PrimitiveCount());
+                snprintf(buffer, sizeof(buffer), "screenshots/%s_%04d_%04d.png", m_imageName, m_imageId++, PrimitiveCount());
                 m_framebuffers[CurrentChoice()].saveToFile(buffer);
                 m_lastScreenshot = curTime;
             }
