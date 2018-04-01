@@ -25,7 +25,7 @@ struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 8,
+        NumChoices = 16,
     };
 
     Window m_window;
@@ -40,17 +40,15 @@ struct Renderer
     Framebuffer m_diffbuffers[NumChoices];
     Vector<Vertex> m_vertices[NumChoices];
 
-    float m_alpha = 0.1f;
-
     unsigned m_width, m_height;
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
+    unsigned m_framesPerPrimitive = 250;
 
     int m_maxPrimitives;
     int m_topMip;
     int m_imageId = 0;
-    int m_currentChangeIdx = 0;
 
     time_t m_lastScreenshot = 0;
 
@@ -62,7 +60,6 @@ struct Renderer
         m_width = img.width;
         m_height = img.height;
         m_maxPrimitives = max_prims;
-        printf("Max primitives: %i\n", m_maxPrimitives);
         m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_width), float(m_height))));
         Input::SetWindow(m_window.getWindow());
         Input::Poll();
@@ -116,6 +113,8 @@ struct Renderer
         }
         m_texture.Init(img);
         AddPrimitive(m_vertices[CurrentChoice()]);
+
+        printf("Max primitives: %i\n", m_maxPrimitives);
     }
     ~Renderer()
     {
@@ -153,101 +152,43 @@ struct Renderer
     void CommitChange(int idx)
     {
         m_frontFrame = idx;
-        m_currentChangeIdx--;
-        if(m_currentChangeIdx < 0)
-        {
-            m_currentChangeIdx = m_vertices[0].count() - 1;
-        }
     }
     int PrimitiveCount()
     {
-        return m_vertices[m_frontFrame].count() / 3;
+        return m_vertices[CurrentChoice()].count() / 3;
     }
-    void MakeRandomChange(Vector<Vertex>& vertices)
+    void MakeRandomChange(Vector<Vertex>& vertices, int idx)
     {
-        const int primIdx = m_currentChangeIdx - (m_currentChangeIdx % 3);
-        switch(rand() & 3)
+        if(rand() & 1)
         {
-            case 0: // color
+            vec4 color = vertices[idx].color;
+            float* comps = &color.x;
+            float& chosen = comps[rand() % 3];
+            chosen = glm::mix(chosen, randf(), 0.1f);
+            for(int i = 0; i < 3; ++i)
             {
-                vec4 color = vertices[primIdx].color;
-                float* comps = &color.x;
-                float& chosen = comps[rand() % 3];
-                chosen = glm::mix(chosen, randf(), m_alpha);
-                for(int i = 0; i < 3; ++i)
-                {
-                    vertices[primIdx + i].color = color;
-                }
+                vertices[idx + i].color = color;
             }
-            break;
-            case 1: // radius
-            {
-                Vertex& origin = vertices[primIdx];
-                vec2 center(origin.position.x, origin.position.y);
-                float radius = origin.position.z;
-                float angle = origin.position.w;
-
-                radius = glm::mix(radius, randf(), m_alpha);
-                origin.position = vec4(center.x, center.y, radius, angle);
-                for(int i = 0; i < 2; ++i)
-                {
-                    float theta = thetaPerVert * float(i);
-                    float x = center.x + radius * glm::cos(angle * tau + theta);
-                    float y = center.y + radius * glm::sin(angle * tau + theta);
-                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
-                }
-            }
-            case 2: // angle
-            {
-                Vertex& origin = vertices[primIdx];
-                vec2 center(origin.position.x, origin.position.y);
-                float radius = origin.position.z;
-                float angle = origin.position.w;
-
-                angle = glm::mix(angle, randf(), m_alpha);
-                origin.position = vec4(center.x, center.y, radius, angle);
-                for(int i = 0; i < 2; ++i)
-                {
-                    float theta = thetaPerVert * float(i);
-                    float x = center.x + radius * glm::cos(angle * tau + theta);
-                    float y = center.y + radius * glm::sin(angle * tau + theta);
-                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
-                }
-            }
-            case 3: // center
-            {
-                Vertex& origin = vertices[primIdx];
-                vec2 center(origin.position.x, origin.position.y);
-                float radius = origin.position.z;
-                float angle = origin.position.w;
-
-                center = glm::mix(center, vec2(randf2(), randf2()), m_alpha);
-                origin.position = vec4(center.x, center.y, radius, angle);
-                for(int i = 0; i < 2; ++i)
-                {
-                    float theta = thetaPerVert * float(i);
-                    float x = center.x + radius * glm::cos(angle * tau + theta);
-                    float y = center.y + radius * glm::sin(angle * tau + theta);
-                    vertices[primIdx + 1 + i].position = vec4(x, y, radius, angle);
-                }
-            }
+        }
+        else
+        {
+            vec4& pos = vertices[idx + rand() % 3].position;
+            pos.x = glm::mix(pos.x, randf2(), 0.1f);
+            pos.y = glm::mix(pos.y, randf2(), 0.1f);
         }
     }
     void AddPrimitive(Vector<Vertex>& vertices)
     {
         vec2 center(randf2(), randf2());
         vec3 color(randf(), randf(), randf());
-        const float radius = 0.001f;
-        const float angle = randf();
-        Vertex& origin = vertices.grow();
-        origin.position = vec4(center.x, center.y, radius, angle);
-        for(int i = 0; i < 2; ++i)
+        const float len = 0.01f;
+        for(int i = 0; i < 3; ++i)
         {
             Vertex& vertex = vertices.grow();
-            float theta = thetaPerVert * float(i);
-            float x = center.x + radius * glm::cos(angle * tau + theta);
-            float y = center.y + radius * glm::sin(angle * tau + theta);
-            vertex.position = vec4(x, y, radius, angle);
+            vec2 pt = center + len * normalize(vec2(randf2(), randf2()));
+            vertex.position.x = pt.x;
+            vertex.position.y = pt.y;
+            vertex.color = vec4(color, 1.0f);
         }
         printf("Primitive count: %i\n", PrimitiveCount());
     }
@@ -285,14 +226,14 @@ struct Renderer
             return;
         }
         m_circleShader.bind();
-        double diffs[NumChoices];
-
+        int randomIdx = rand() % m_vertices[0].count();
+        randomIdx -= randomIdx % 3;
         for(int i = 0; i < NumChoices; ++i)
         {
             if(i != CurrentChoice())
             {
                 m_vertices[i] = m_vertices[CurrentChoice()];
-                MakeRandomChange(m_vertices[i]);
+                MakeRandomChange(m_vertices[i], randomIdx);
             }
             DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
         }
@@ -303,6 +244,7 @@ struct Renderer
             DrawDifference(i);
         }
         Framebuffer::Barrier();
+        double diffs[NumChoices];
         for(int i = 0; i < NumChoices; ++i)
         {
             diffs[i] = CalculateDifference(i);
@@ -323,10 +265,12 @@ struct Renderer
         SaveImage();
 
         ++m_frameIdx;
-        if(m_frameIdx >= PrimitiveCount() && m_vertices[CurrentChoice()].count() < m_maxPrimitives * 3)
+        if(m_frameIdx % m_framesPerPrimitive == 0)
         {
-            AddPrimitive(m_vertices[CurrentChoice()]);
-            m_frameIdx = 0;
+            if(PrimitiveCount() < m_maxPrimitives)
+            {
+                AddPrimitive(m_vertices[CurrentChoice()]);
+            }
         }
     }
     void Reset()
