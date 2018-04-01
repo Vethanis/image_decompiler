@@ -40,6 +40,8 @@ struct Renderer
     Framebuffer m_diffbuffers[NumChoices];
     Vector<Vertex> m_vertices[NumChoices];
 
+    const char* m_imageName;
+
     unsigned m_width, m_height;
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
@@ -55,11 +57,12 @@ struct Renderer
     bool m_paused = false;
     bool m_showSource = false;
 
-    Renderer(const Image& img, unsigned maj, unsigned min, const char* name, int max_prims) : m_window(img.width, img.height, maj, min, name)
+    Renderer(const Image& img, unsigned maj, unsigned min, const char* name, int max_prims, const char* imageName) : m_window(img.width, img.height, maj, min, name)
     {
         m_width = img.width;
         m_height = img.height;
         m_maxPrimitives = max_prims;
+        m_imageName = imageName;
         m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_width), float(m_height))));
         Input::SetWindow(m_window.getWindow());
         Input::Poll();
@@ -142,8 +145,8 @@ struct Renderer
             time_t duration = curTime - m_lastScreenshot;
             if(duration > time_t(m_secondsBetweenScreenshots))
             {
-                char buffer[64] = {0};
-                snprintf(buffer, 64, "screenshots/image_%d.png", m_imageId++);
+                char buffer[128] = {0};
+                snprintf(buffer, sizeof(buffer), "screenshots/%s_%4d_%4d.png", m_imageName, m_imageId++, PrimitiveCount());
                 m_framebuffers[CurrentChoice()].saveToFile(buffer);
                 m_lastScreenshot = curTime;
             }
@@ -225,17 +228,24 @@ struct Renderer
         {
             return;
         }
-        m_circleShader.bind();
-        int randomIdx = rand() % m_vertices[0].count();
-        randomIdx -= randomIdx % 3;
-        for(int i = 0; i < NumChoices; ++i)
+
         {
-            if(i != CurrentChoice())
+            m_circleShader.bind();
+            float fpos = randf();
+            fpos = fpos * fpos;
+            fpos = 1.0f - fpos;
+            fpos *= float(m_vertices[0].count() - 1);
+            int randomIdx = int(fpos);
+            randomIdx -= randomIdx % 3;
+            for(int i = 0; i < NumChoices; ++i)
             {
-                m_vertices[i] = m_vertices[CurrentChoice()];
-                MakeRandomChange(m_vertices[i], randomIdx);
+                if(i != CurrentChoice())
+                {
+                    m_vertices[i] = m_vertices[CurrentChoice()];
+                    MakeRandomChange(m_vertices[i], randomIdx);
+                }
+                DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
             }
-            DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
         }
 
         m_diffShader.bind();
@@ -362,7 +372,7 @@ int main(int argc, char* argv[])
 
     Image img;
     img.load(argv[1]);
-    Renderer renderer(img, 4, 5, "Image Decompiler", atoi(argv[2]));
+    Renderer renderer(img, 4, 5, "Image Decompiler", atoi(argv[2]), argv[1]);
     img.free();
 
     while(renderer.Swap()){}
