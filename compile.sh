@@ -38,8 +38,8 @@ cp $GLSL bin/Release
 cp $GLSL bin/Debug
 cp $DLL bin/Release
 cp $DLL bin/Debug
-cp $ASSETS bin/Release
-cp $ASSETS bin/Debug
+cp run.* bin/Release
+cp run.* bin/Debug
 
 if [ "$1" == "debug" ] || [ "$2" == "debug" ] ; then
     echo ""
