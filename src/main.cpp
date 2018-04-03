@@ -17,10 +17,6 @@
 #include "vertexbuffer.h"
 #include "mesh.h"
 
-constexpr float pi = 3.141592f;
-constexpr float tau = pi * 2.0f;
-constexpr float thetaPerVert = pi / 3.0f;
-
 struct Renderer
 {
     enum eConstants : int
@@ -46,7 +42,7 @@ struct Renderer
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
-    unsigned m_framesPerPrimitive = 250;
+    unsigned m_framesPerPrimitive = 100;
 
     int m_maxPrimitives;
     int m_topMip;
@@ -145,8 +141,16 @@ struct Renderer
             time_t duration = curTime - m_lastScreenshot;
             if(duration > time_t(m_secondsBetweenScreenshots))
             {
-                char buffer[128] = {0};
-                snprintf(buffer, sizeof(buffer), "screenshots/%s_%04d_%04d.png", m_imageName, m_imageId++, PrimitiveCount());
+                char filename[64] = { 0 };
+                for(int i = 0; i < 63 && m_imageName[i]; ++i)
+                {
+                    if(m_imageName[i] == '.')
+                        break;
+
+                    filename[i] = m_imageName[i];
+                }
+                char buffer[128] = { 0 };
+                snprintf(buffer, sizeof(buffer), "screenshots/%s_%04d_%04d.png", filename, m_imageId++, PrimitiveCount());
                 m_framebuffers[CurrentChoice()].saveToFile(buffer);
                 m_lastScreenshot = curTime;
             }

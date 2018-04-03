@@ -1,1 +1,1 @@
-main.exe example.png 1000
+main.exe example.png 3000

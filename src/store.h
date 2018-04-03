@@ -143,13 +143,14 @@ public:
     bool full(){ return cap == count; }
     void clear()
     {
-        for(unsigned i = 0; i < count; ++i)
+        for(unsigned i = 0; i < cap; ++i)
         {
             names[i] = 0;
         }
-        for(unsigned i = 0; i < count; ++i)
+        for(unsigned i = 0; i < cap; ++i)
         {
             data[i] = T();
         }
+        count = 0;
     }
 };
