@@ -40,7 +40,6 @@ cp $DLL bin/Release
 cp $DLL bin/Debug
 cp run.* bin/Release
 cp run.* bin/Debug
-cp listScreenshots.bat bin/Release
 
 if [ "$1" == "debug" ] || [ "$2" == "debug" ] ; then
     echo ""

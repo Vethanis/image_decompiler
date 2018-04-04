@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cmath>
-#include <random>
+void seedRandom();
 
-inline float randf()
-{
-    return float(rand()) / float(RAND_MAX);
-}
+unsigned randu();
+
+float randf();
 
 inline float randf2()
 {
