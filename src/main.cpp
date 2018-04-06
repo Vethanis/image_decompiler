@@ -42,12 +42,11 @@ struct Renderer
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
-    unsigned m_framesPerPrimitive = 100;
+    unsigned m_framesPerPrimitive = 250;
 
     int m_maxPrimitives=0;
     int m_topMip=0;
     int m_imageId = 0;
-    int m_primitiveIndex = 0;
 
     time_t m_lastScreenshot = 0;
 
@@ -225,12 +224,13 @@ struct Renderer
 
         {
             m_circleShader.bind();
+            int primIdx = randu() % m_vertices[0].count();
             for(int i = 0; i < NumChoices; ++i)
             {
                 if(i != CurrentChoice())
                 {
                     m_vertices[i] = m_vertices[CurrentChoice()];
-                    MakeRandomChange(m_vertices[i], m_primitiveIndex);
+                    MakeRandomChange(m_vertices[i], primIdx);
                 }
                 DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
             }
@@ -262,10 +262,8 @@ struct Renderer
 
         SaveImage();
 
-        m_primitiveIndex++;
-        if(m_primitiveIndex >= m_vertices[0].count())
+        if((m_frameIdx % m_framesPerPrimitive) == 0)
         {
-            m_primitiveIndex = 0;
             if(PrimitiveCount() < m_maxPrimitives)
             {
                 AddPrimitive(m_vertices[CurrentChoice()]);
