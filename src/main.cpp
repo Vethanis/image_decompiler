@@ -21,7 +21,7 @@ struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 8,
+        NumChoices = 32,
     };
 
     Window m_window;
@@ -43,7 +43,7 @@ struct Renderer
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
     unsigned m_secondsBetweenReseeds = 30;
-    unsigned m_framesPerPrimitive = 250;
+    unsigned m_framesPerPrimitive = 100;
 
     int m_maxPrimitives=0;
     int m_topMip=0;
@@ -97,7 +97,6 @@ struct Renderer
 
         Reset();
         m_texture.Init(img);
-        AddPrimitive(m_vertices[CurrentChoice()]);
 
         printf("Max primitives: %i\n", m_maxPrimitives);
     }
@@ -159,11 +158,24 @@ struct Renderer
     {
         return m_vertices[CurrentChoice()].count() / 3;
     }
-    void MakeRandomChange(Vector<Vertex>& vertices, int idx)
+    void MakeRandomChange(Vector<Vertex>& vertices)
     {
+        if(!vertices.count())
+        {
+            return;
+        }
+        const int num_prims = PrimitiveCount();
+        int idx = 3 * (num_prims - 1);
+        if(num_prims == m_maxPrimitives || randf() < 0.25f)
+        {
+            float pos = randf();
+            pos = pos * pos;
+            pos = 1.0f - pos;
+            idx = int(3.0f * pos * float(num_prims));
+            idx = glm::clamp(idx, 0, num_prims - 1);
+        }
         if(randu() & 1)
         {
-            idx -= idx % 3;
             vec4 color = vertices[idx].color;
             float* comps = &color.x;
             float& chosen = comps[randu() % 3];
@@ -175,9 +187,9 @@ struct Renderer
         }
         else
         {
-            vec4& pos = vertices[idx].position;
-            pos.x = glm::mix(pos.x, 1.25f * randf2(), randf());
-            pos.y = glm::mix(pos.y, 1.25f * randf2(), randf());
+            vec4& pos = vertices[idx + randu() % 3].position;
+            pos.x = glm::mix(pos.x, 1.1f * randf2(), randf());
+            pos.y = glm::mix(pos.y, 1.1f * randf2(), randf());
         }
     }
     void AddPrimitive(Vector<Vertex>& vertices)
@@ -232,13 +244,12 @@ struct Renderer
 
         {
             m_circleShader.bind();
-            int primIdx = randu() % m_vertices[0].count();
             for(int i = 0; i < NumChoices; ++i)
             {
                 if(i != CurrentChoice())
                 {
                     m_vertices[i] = m_vertices[CurrentChoice()];
-                    MakeRandomChange(m_vertices[i], primIdx);
+                    MakeRandomChange(m_vertices[i]);
                 }
                 DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
             }
