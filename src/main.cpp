@@ -21,7 +21,7 @@ struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 32,
+        NumChoices = 8,
     };
 
     Window m_window;
@@ -42,6 +42,7 @@ struct Renderer
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
+    unsigned m_secondsBetweenReseeds = 30;
     unsigned m_framesPerPrimitive = 250;
 
     int m_maxPrimitives=0;
@@ -49,6 +50,7 @@ struct Renderer
     int m_imageId = 0;
 
     time_t m_lastScreenshot = 0;
+    time_t m_lastReseed = 0;
 
     bool m_paused = false;
     bool m_showSource = false;
@@ -135,6 +137,12 @@ struct Renderer
                 snprintf(buffer, sizeof(buffer), "screenshots/%s_%04d_%04d.png", filename, m_imageId++, PrimitiveCount());
                 m_framebuffers[CurrentChoice()].saveToFile(buffer);
                 m_lastScreenshot = curTime;
+            }
+            duration = curTime - m_lastReseed;
+            if(duration > time_t(m_secondsBetweenReseeds))
+            {
+                seedRandom();
+                m_lastReseed = curTime;
             }
         }
     }

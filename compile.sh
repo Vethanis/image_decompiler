@@ -40,11 +40,6 @@ cp $DLL bin/Release
 cp $DLL bin/Debug
 cp run.* bin/Release
 cp run.* bin/Debug
+cp assets/example.png bin/Release
+cp assets/example.png bin/Debug
 
-if [ "$1" == "debug" ] || [ "$2" == "debug" ] ; then
-    echo ""
-else
-    cd bin/Release
-    ./main.exe "example.png" 3000
-    cd ../..
-fi
