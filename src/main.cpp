@@ -166,7 +166,11 @@ struct Renderer
         }
         const int num_prims = PrimitiveCount();
         int idx = 3 * (num_prims - 1);
-        if(num_prims == m_maxPrimitives || randf() < 0.25f)
+        if(num_prims == m_maxPrimitives)
+        {
+            idx = 3 * (randu() % num_prims);
+        }
+        else if(randf() < 0.1f)
         {
             float pos = randf();
             pos = pos * pos;
@@ -174,6 +178,7 @@ struct Renderer
             idx = int(3.0f * pos * float(num_prims));
             idx = glm::clamp(idx, 0, num_prims - 1);
         }
+
         if(randu() & 1)
         {
             vec4 color = vertices[idx].color;
