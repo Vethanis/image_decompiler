@@ -1,4 +1,4 @@
-# image decompiler
+# Image Decompiler
 
 Arranges triangles in order to minimize the difference between the framebuffer and the source image.
 
