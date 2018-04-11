@@ -31,7 +31,7 @@ The goal of the image decompiler is to produce:
 1. A list of colored semi-transparent triangles approximating a source image
 2. Screenshots tracking the progress of the triangle list
 
-The process of creating the list of triangles is as follows.
+The process of creating the list of triangles is as follows:
 
 0. Read in parameters from user, such as maximum triangle count and source image
 1. Create N primary and N secondary canvases
