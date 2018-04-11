@@ -28,8 +28,8 @@ Arranges triangles randomly in order to minimize the difference between the fram
 
 The goal of the image decompiler is to produce:
 
-1. A list of colored semi-transparent triangles approximating a supplied image
-2. The image produced from drawing the triangle list as the program optimizes the list
+1. A list of colored semi-transparent triangles approximating a source image
+2. Screenshots tracking the progress of the triangle list
 
 The process of creating the list of triangles is as follows.
 
