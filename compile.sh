@@ -28,11 +28,11 @@ fi
 
 GLSL="src/*.glsl"
 DLL="lib/*.dll"
-ASSETS="assets/*"
 
 mkdir -p bin/Release
 mkdir -p bin/Debug
 mkdir -p bin/Release/screenshots
+mkdir -p bin/Debug/screenshots
 
 cp $GLSL bin/Release
 cp $GLSL bin/Debug
@@ -42,4 +42,3 @@ cp run.* bin/Release
 cp run.* bin/Debug
 cp assets/example.png bin/Release
 cp assets/example.png bin/Debug
-

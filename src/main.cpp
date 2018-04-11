@@ -21,7 +21,7 @@ struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 32,
+        NumChoices = 16,
     };
 
     Window m_window;
@@ -43,7 +43,7 @@ struct Renderer
     unsigned m_frameIdx = 0;
     unsigned m_secondsBetweenScreenshots = 60;
     unsigned m_secondsBetweenReseeds = 30;
-    unsigned m_framesPerPrimitive = 100;
+    unsigned m_framesPerPrimitive = 200;
 
     int m_maxPrimitives=0;
     int m_topMip=0;
