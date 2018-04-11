@@ -1,30 +1,8 @@
 # image decompiler
 
-Arranges triangles randomly in order to minimize the difference between the framebuffer and the source image.
+Arranges triangles in order to minimize the difference between the framebuffer and the source image.
 
-## __Dependencies:__
-
-* OpenGL 4.3
-* glew
-* glfw3
-* glm
-* c++11 compiler
-* cmake
-  
-## __Building:__
-
-* mkdir build
-* cd build
-* cmake .. -G "*your platform*"
-* cd ..
-* cmake --build build --config Release
-
-## __Running:__
-
-* cd bin
-* ./main imageName numTriangles
-
-# How it works
+## How it works
 
 The goal of the image decompiler is to produce:
 
@@ -48,3 +26,25 @@ The process of creating the list of triangles is as follows:
 12. Add one to the frame counter
 13. If the triangle list is full or the frame counter is less than F: goto 4
 14. goto 3
+
+## __Dependencies:__
+
+* OpenGL 4.3
+* glew
+* glfw3
+* glm
+* c++11 compiler
+* cmake
+  
+## __Building:__
+
+* mkdir build
+* cd build
+* cmake .. -G "*your platform*"
+* cd ..
+* cmake --build build --config Release
+
+## __Running:__
+
+* cd bin
+* ./main imageName numTriangles
