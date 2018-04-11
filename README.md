@@ -4,7 +4,7 @@ Arranges triangles in order to minimize the difference between the framebuffer a
 
 Currently only handles PNG images.
 
-## How it works
+## How it works:
 
 The goal of the image decompiler is to produce:
 
