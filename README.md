@@ -23,7 +23,7 @@ The process of creating the list of triangles is as follows:
 7. For N secondary canvases: draw the absolute value of the difference between the source image and the primary canvas into the secondary canvas
 8. For N secondary canvases: determine the average value of the difference (top mipmap value)
 9. Choose the canvas with the lowest average difference and set it as the current most optimal list
-10. Save a screenshot to file once every M minutes
+10. Save a screenshot once every M minutes
 11. Handle user input
 12. Add one to the frame counter
 13. If the triangle list is full or the frame counter is less than F: goto 4
