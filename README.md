@@ -2,6 +2,8 @@
 
 Arranges triangles in order to minimize the difference between the framebuffer and the source image.
 
+Currently only handles PNG images.
+
 ## How it works
 
 The goal of the image decompiler is to produce:
@@ -47,4 +49,4 @@ The process of creating the list of triangles is as follows:
 ## __Running:__
 
 * cd bin
-* ./main imageName numTriangles
+* ./main imageName.png numTriangles
