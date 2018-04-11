@@ -13,7 +13,7 @@ The goal of the image decompiler is to produce:
 
 The process of creating the list of triangles is as follows:
 
-0. Read in parameters from user, such as maximum triangle count and source image
+0. Read in parameters from user, such as source png image and maximum triangle count
 1. Create N primary and N secondary canvases
 2. Create N empty triangle lists
 3. Add a small triangle with random color and random position to the current most optimal list
