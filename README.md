@@ -50,3 +50,66 @@ The process of creating the list of triangles is as follows:
 
 * cd bin
 * ./main imageName.png numTriangles
+
+
+## Highlights
+
+### "Concept Art: Moira" for Blizzard's Overwatch via https://playoverwatch.com/en-us/heroes/moira/
+
+![](highlights/1moira6.png "Source")
+
+![](highlights/1moira6_0008_0088.png "88 Triangles")
+
+![](highlights/1moira6_0062_0502.png "502 Triangles")
+
+![](highlights/1moira6_0257_1501.png "1501 Triangles")
+
+![](highlights/1moira6_0978_3000.png "3000 Triangles")
+
+### Photograph by spacey @spaceUMM https://twitter.com/spaceUMM
+
+![](highlights/2delorean1.png "Source")
+
+![](highlights/2delorean1_0049_0507.png "507 Triangles")
+
+![](highlights/2delorean1_0395_2509.png "2509 Triangles")
+
+![](highlights/2delorean1_0882_5003.png "5003 Triangles")
+
+![](highlights/2delorean1_1993_10000.png "10000 Triangles")
+
+### "Cities IV Deconstructed: Illustration Series" by Atelier Olschinsky via https://www.behance.net/gallery/2632147/Cities-IV-Deconstructed
+
+![](highlights/3deconstructed_cities.png "Source")
+
+![](highlights/3deconstructed_cities_0006_0079.png "79 Triangles")
+
+![](highlights/3deconstructed_cities_0020_0251.png "251 Triangles")
+
+![](highlights/3deconstructed_cities_0041_0509.png "509 Triangles")
+
+![](highlights/3deconstructed_cities_0100_1000.png "1000 Triangles")
+
+### Photograph of Daft Punk by Dave Hill http://www.davehillphoto.com/
+
+![](highlights/4daft_punk_disco.png "Source")
+
+![](highlights/4daft_punk_disco_0024_0256.png "256 Triangles")
+
+![](highlights/4daft_punk_disco_0048_0502.png "502 Triangles")
+
+![](highlights/4daft_punk_disco_0146_1506.png "1506 Triangles")
+
+![](highlights/4daft_punk_disco_0437_3000.png "3000 Triangles")
+
+### Illustration by LAL!ROLE @Laxxxli https://twitter.com/Laxxxli
+
+![](highlights/5purple_cutie_cat2.png "Source")
+
+![](highlights/5purple_cutie_cat2.png_0008_0160.png "160 Triangles")
+
+![](highlights/5purple_cutie_cat2.png_0029_0504.png "504 Triangles")
+
+![](highlights/5purple_cutie_cat2.png_0103_1508.png "1508 Triangles")
+
+![](highlights/5purple_cutie_cat2.png_0262_3000.png "3000 Triangles")
