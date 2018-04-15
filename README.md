@@ -49,7 +49,33 @@ The process of creating the list of triangles is as follows:
 ## __Running:__
 
 * cd bin
-* ./main -image=example.png -brush=stardust.png -maxPrimitives=3000 -framesPerPrimitive=500 -primAlpha=0.75 -secondsPerScreenshot=180
+* ./main 
+
+Optional arguments:
+  
+  The source image to attempt to reproduce
+  
+  -image=example.png 
+  
+  The image to use as each primitive
+  
+  -brush=stardust.png 
+  
+  The maximum number of primitives
+  
+  -maxPrimitives=3000 
+  
+  Number of simulation steps between adding a new primitive
+  
+  -framesPerPrimitive=500 
+  
+  The opacity of each primitive
+  
+  -primAlpha=0.75 
+  
+  Seconds between each screenshot being taken
+  
+  -secondsPerScreenshot=180
 
 
 ## Highlights
