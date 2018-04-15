@@ -40,5 +40,5 @@ cp $DLL bin/Release
 cp $DLL bin/Debug
 cp run.* bin/Release
 cp run.* bin/Debug
-cp assets/example.png bin/Release
-cp assets/example.png bin/Debug
+cp assets/* bin/Release
+cp assets/* bin/Debug

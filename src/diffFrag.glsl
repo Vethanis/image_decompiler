@@ -11,5 +11,6 @@ void main()
     vec4 a = texture(A, fragUv);
     vec4 b = texture(B, fragUv);
     vec4 c = abs(a - b);
+    c.a = 1.0;
     outColor = c;
 }

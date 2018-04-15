@@ -65,7 +65,7 @@ void APIENTRY error_callback_gl(GLenum source,
     }
 }
 
-Window::Window(int width, int height, int major_ver, int minor_ver, const char* title){
+void Window::init(int width, int height, int major_ver, int minor_ver, const char* title){
     glfwSetErrorCallback(error_callback);
     assert(glfwInit());
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major_ver);
@@ -99,7 +99,7 @@ Window::Window(int width, int height, int major_ver, int minor_ver, const char* 
 #endif
 }
 
-Window::~Window(){
+void Window::deinit(){
     glfwDestroyWindow(window);
     glfwTerminate();
 }

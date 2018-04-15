@@ -12,8 +12,8 @@ public:
     {
         window = nullptr;
     }
-    Window(int width, int height, int major_ver, int minor_ver, const char* title);
-    ~Window();
+    void init(int width, int height, int major_ver, int minor_ver, const char* title);
+    void deinit();
     inline GLFWwindow* getWindow(){ return window; };
     bool open();
     void swap();

@@ -16,91 +16,164 @@
 #include "framebuffer.h"
 #include "vertexbuffer.h"
 #include "mesh.h"
+#include <cstring>
+
+#include <glm/gtx/matrix_transform_2d.hpp>
+
+#define NELEM(x) (sizeof(x) / sizeof(x[0]))
+
+struct sSettings
+{
+    const char* m_imageName = "example.png";
+    const char* m_brushName = "brush.png";
+    const char* m_windowName = "Image Decompiler";
+    unsigned m_glMajor = 4;
+    unsigned m_glMinor = 5;
+    unsigned m_width = 0, m_height = 0;
+    unsigned m_secondsPerScreenshot = 60 * 3;
+    unsigned m_framesPerPrimitive = 250;
+    int m_maxPrimitives = 1000;
+    float m_primAlpha = 0.75f;
+};
 
 struct Renderer
 {
     enum eConstants : int
     {
-        NumChoices = 16,
+        NumChoices = 8,
+        VerticesPerPrimitive = 6,
     };
 
     Window m_window;
     GLProgram m_shader;
-    GLProgram m_circleShader;
+    GLProgram m_primShader;
     GLProgram m_diffShader;
     Texture m_texture;
+    Texture m_brushTex;
     Mesh m_mesh;
+
+    static const vec4 m_square[VerticesPerPrimitive];
 
     Framebuffer m_framebuffers[NumChoices];
     Framebuffer m_diffbuffers[NumChoices];
-    Vector<Vertex> m_vertices[NumChoices];
+    VertexBuffer m_vertices[NumChoices];
 
-    const char* m_imageName=nullptr;
+    struct PrimTransform
+    {
+        vec2 translation = vec2(0.0f);
+        vec2 scale = vec2(0.01f);
+        float rotation = 0.0f;
+
+        void Randomize()
+        {
+            switch(randu() % 3)
+            {
+                case 0: 
+                {
+                    vec2 nTranslation = translation;
+                    *(&nTranslation.x + randu() % 2) = 1.1f * randf2();
+                    translation = glm::mix(translation, nTranslation, randf());
+                }
+                break;
+                case 1: 
+                {
+                    vec2 nScale = scale;
+                    *(&nScale.x + randu() % 2) = randf();
+                    scale = glm::mix(scale, nScale, randf());
+                }
+                break;
+                case 2: 
+                {
+                    float nTranslation = randf() * 3.141592f * 2.0f;
+                    rotation = glm::mix(rotation, nTranslation, randf());
+                };
+                break;
+            }
+        }
+        void Transform(Vertex* pVerts) const
+        {
+            const mat3 transform = glm::translate(mat3(), translation) * glm::rotate(mat3(), rotation) * glm::scale(mat3(), scale);
+            for(int i = 0; i < VerticesPerPrimitive; ++i)
+            {
+                const vec4& sqr = m_square[i];
+                const vec3 pos = transform * vec3(sqr.x, sqr.y, 1.0f);
+                pVerts[i].position = vec4(pos.x, pos.y, sqr.z, sqr.w);
+            }
+        }
+    };
+    typedef Vector<PrimTransform> TransformBuffer;
+    TransformBuffer m_transforms[NumChoices];
+
+    sSettings m_settings;
+
     double m_currentDifference = 0.0;
 
-    unsigned m_width=0, m_height=0;
     unsigned m_frontFrame = 0;
     unsigned m_frameIdx = 0;
-    unsigned m_secondsBetweenScreenshots = 60;
-    unsigned m_secondsBetweenReseeds = 30;
-    unsigned m_framesPerPrimitive = 200;
-
-    int m_maxPrimitives=0;
     int m_topMip=0;
     int m_imageId = 0;
 
     time_t m_lastScreenshot = 0;
-    time_t m_lastReseed = 0;
 
     bool m_paused = false;
     bool m_showSource = false;
     bool m_viewDiff = false;
 
-    Renderer(const Image& img, unsigned maj, unsigned min, const char* name, int max_prims, const char* imageName) : m_window(img.width, img.height, maj, min, name)
+    void init(const sSettings& settings)
     {
-        m_width = img.width;
-        m_height = img.height;
-        m_maxPrimitives = max_prims;
-        m_imageName = imageName;
-        m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_width), float(m_height))));
+        m_settings = settings;
+        m_window.init(m_settings.m_width, m_settings.m_height, m_settings.m_glMajor, m_settings.m_glMinor, m_settings.m_windowName);
+        m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_settings.m_width), float(m_settings.m_height))));
         Input::SetWindow(m_window.getWindow());
         Input::Poll();
-        const char* shaderfiles[] = {
+        const char* screenShaders[] = {
             "screenVert.glsl",
             "screenFrag.glsl"
         };
-        const char* circleFiles[] = {
+        const char* primShaders[] = {
             "circleVert.glsl",
             "circleFrag.glsl"
         };
-        const char* diffFiles[] = {
+        const char* diffShaders[] = {
             "screenVert.glsl",
             "diffFrag.glsl"
         };
-        m_shader.setup(shaderfiles, 2);
-        m_circleShader.setup(circleFiles, 2);
-        m_diffShader.setup(diffFiles, 2);
+        m_shader.setup(screenShaders, 2);
+        m_primShader.setup(primShaders, 2);
+        m_diffShader.setup(diffShaders, 2);
 
         for(Framebuffer& frame : m_diffbuffers)
         {
-            frame.init(m_width, m_height, 1);
+            frame.init(m_settings.m_width, m_settings.m_height, 1);
         }
         for(Framebuffer& frame : m_framebuffers)
         {
-            frame.init(m_width, m_height, 1);
+            frame.init(m_settings.m_width, m_settings.m_height, 1);
         }
         m_mesh.init();
 
         glEnable(GL_BLEND); DebugGL();
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); DebugGL();
-        glViewport(0, 0, m_width, m_height); DebugGL();
+        glViewport(0, 0, m_settings.m_width, m_settings.m_height); DebugGL();
 
         Reset();
-        m_texture.Init(img);
-
-        printf("Max primitives: %i\n", m_maxPrimitives);
+        {
+            Image img;
+            img.load(m_settings.m_imageName);
+            m_texture.Init(img);
+        }
+        {
+            Image img;
+            img.load(m_settings.m_brushName);
+            if(!img.image)
+            {
+                printf("Could not load brush %s\n", m_settings.m_brushName);
+                exit(1);
+            }
+            m_brushTex.Init(img);
+        }
     }
-    ~Renderer()
+   void deinit()
     {
         for(auto& frame : m_framebuffers)
         {
@@ -111,9 +184,11 @@ struct Renderer
             frame.deinit();
         }
         m_mesh.deinit();
-        m_circleShader.deinit();
+        m_primShader.deinit();
         m_shader.deinit();
         m_texture.deinit();
+        m_brushTex.deinit();
+        m_window.deinit();
     }
     int CurrentChoice() { return m_frontFrame; }
     void SaveImage()
@@ -122,26 +197,20 @@ struct Renderer
         {
             time_t curTime = time(nullptr);
             time_t duration = curTime - m_lastScreenshot;
-            if(duration > time_t(m_secondsBetweenScreenshots))
+            if(duration > time_t(m_settings.m_secondsPerScreenshot))
             {
                 char filename[64] = { 0 };
-                for(int i = 0; i < 63 && m_imageName[i]; ++i)
+                for(int i = 0; i < 63 && m_settings.m_imageName[i]; ++i)
                 {
-                    if(m_imageName[i] == '.')
+                    if(m_settings.m_imageName[i] == '.')
                         break;
 
-                    filename[i] = m_imageName[i];
+                    filename[i] = m_settings.m_imageName[i];
                 }
                 char buffer[128] = { 0 };
                 snprintf(buffer, sizeof(buffer), "screenshots/%s_%04d_%04d.png", filename, m_imageId++, PrimitiveCount());
                 m_framebuffers[CurrentChoice()].saveToFile(buffer);
                 m_lastScreenshot = curTime;
-            }
-            duration = curTime - m_lastReseed;
-            if(duration > time_t(m_secondsBetweenReseeds))
-            {
-                seedRandom();
-                m_lastReseed = curTime;
             }
         }
     }
@@ -156,74 +225,76 @@ struct Renderer
     }
     int PrimitiveCount()
     {
-        return m_vertices[CurrentChoice()].count() / 3;
+        return m_transforms[CurrentChoice()].count();
     }
-    void MakeRandomChange(Vector<Vertex>& vertices)
+    void MakeRandomChange(VertexBuffer& vertices, TransformBuffer& transforms)
     {
-        if(!vertices.count())
+        if(!PrimitiveCount())
         {
             return;
         }
+
+        Vertex* primBegin = nullptr;
         const int num_prims = PrimitiveCount();
-        int idx = 3 * (num_prims - 1);
-        if(num_prims == m_maxPrimitives)
+        int idx = VerticesPerPrimitive * (num_prims - 1);
+        if(num_prims == m_settings.m_maxPrimitives)
         {
-            idx = 3 * (randu() % num_prims);
+            idx = VerticesPerPrimitive * (randu() % num_prims);
         }
-        else if(randf() < 0.1f)
+        else if(randf() < 0.25f)
         {
             float pos = randf();
             pos = pos * pos;
             pos = 1.0f - pos;
-            idx = int(3.0f * pos * float(num_prims));
+            idx = int(float(VerticesPerPrimitive) * pos * float(num_prims));
             idx = glm::clamp(idx, 0, num_prims - 1);
         }
 
+        idx -= idx % VerticesPerPrimitive;
+        primBegin = &vertices[idx];
+        
         if(randu() & 1)
-        {
-            vec4 color = vertices[idx].color;
-            float* comps = &color.x;
-            float& chosen = comps[randu() % 3];
-            chosen = glm::mix(chosen, randf(), randf());
-            for(int i = 0; i < 3; ++i)
+        {   
+            vec4 color = primBegin->color;
+            *(&color.x + randu() % 3) = randf();
+            color = glm::mix(primBegin->color, color, randf());
+            for(int i = 0; i < VerticesPerPrimitive; ++i)
             {
-                vertices[idx + i].color = color;
+                primBegin[i].color = color;
             }
         }
         else
         {
-            vec4& pos = vertices[idx + randu() % 3].position;
-            pos.x = glm::mix(pos.x, 1.1f * randf2(), randf());
-            pos.y = glm::mix(pos.y, 1.1f * randf2(), randf());
+            idx /= VerticesPerPrimitive;
+            transforms[idx].Randomize();
+            transforms[idx].Transform(primBegin);
         }
     }
-    void AddPrimitive(Vector<Vertex>& vertices)
+    void AddPrimitive(Vector<Vertex>& vertices, Vector<PrimTransform>& transforms)
     {
-        vec2 center(randf2(), randf2());
-        vec3 color(randf(), randf(), randf());
-        const float len = 0.01f;
-        for(int i = 0; i < 3; ++i)
+        const vec4 color(randf(), randf(), randf(), 1.0f);
+
+        PrimTransform& xform = transforms.grow();
+        xform.Randomize();
+
+        const int idx = vertices.count();
+        for(int i = 0; i < VerticesPerPrimitive; ++i)
         {
-            Vertex& vertex = vertices.grow();
-            vec2 pt = center + len * normalize(vec2(randf2(), randf2()));
-            vertex.position.x = pt.x;
-            vertex.position.y = pt.y;
-            vertex.color = vec4(color, 1.0f);
+            vertices.grow();
         }
+        xform.Transform(&vertices[idx]);
         printf("Primitive count: %i\n", PrimitiveCount());
     }
     void DrawIntoBuffer(const Vector<Vertex>& vertices, Framebuffer& destBuffer)
     {
         m_mesh.upload(vertices);
         destBuffer.bind();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         Framebuffer::clear();
         m_mesh.draw();
     }
     void DrawDifference(int idx)
     {
         m_diffbuffers[idx].bind();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         Framebuffer::clear();
         m_diffShader.bindTexture(1, m_texture.handle, "A");
         m_diffShader.bindTexture(2, m_framebuffers[idx].m_attachments[0], "B");
@@ -248,13 +319,16 @@ struct Renderer
         }
 
         {
-            m_circleShader.bind();
+            m_primShader.bind();
+            m_primShader.bindTexture(9, m_brushTex.handle, "brush");
+            m_primShader.setUniformFloat("primAlpha", m_settings.m_primAlpha);
             for(int i = 0; i < NumChoices; ++i)
             {
                 if(i != CurrentChoice())
                 {
                     m_vertices[i] = m_vertices[CurrentChoice()];
-                    MakeRandomChange(m_vertices[i]);
+                    m_transforms[i] = m_transforms[CurrentChoice()];
+                    MakeRandomChange(m_vertices[i], m_transforms[i]);
                 }
                 DrawIntoBuffer(m_vertices[i], m_framebuffers[i]);
             }
@@ -286,11 +360,11 @@ struct Renderer
 
         SaveImage();
 
-        if((m_frameIdx % m_framesPerPrimitive) == 0)
+        if((m_frameIdx % m_settings.m_framesPerPrimitive) == 0)
         {
-            if(PrimitiveCount() < m_maxPrimitives)
+            if(PrimitiveCount() < m_settings.m_maxPrimitives)
             {
-                AddPrimitive(m_vertices[CurrentChoice()]);
+                AddPrimitive(m_vertices[CurrentChoice()], m_transforms[CurrentChoice()]);
             }
         }
         ++m_frameIdx;
@@ -323,7 +397,7 @@ struct Renderer
                 }
                 case GLFW_KEY_ENTER:
                 {
-                    AddPrimitive(m_vertices[CurrentChoice()]);
+                    AddPrimitive(m_vertices[CurrentChoice()], m_transforms[CurrentChoice()]);
                     break;
                 }
                 case GLFW_KEY_SPACE:
@@ -377,7 +451,6 @@ struct Renderer
         }
         m_shader.setUniformInt("seed", randu());
         Framebuffer::bindDefault();
-        glViewport(0, 0, m_width, m_height); DebugGL();
         Framebuffer::clear();
         GLScreen::draw();
         m_window.swap();
@@ -385,27 +458,98 @@ struct Renderer
     }
 };
 
+const vec4 Renderer::m_square[] = 
+{
+    vec4(1.0f,  1.0f,   1.0f, 1.0f), // tr
+    vec4(-1.0f, 1.0f,   0.0f, 1.0f), // tl
+    vec4(-1.0f, -1.0f,  0.0f, 0.0f), // bl
+    vec4(-1.0f, -1.0f,  0.0f, 0.0f), // bl
+    vec4(1.0f,  -1.0f,  1.0f, 0.0f), // br
+    vec4(1.0f,  1.0f,   1.0f, 1.0f), // tr
+};
+
+typedef void (*settings_fn)(sSettings&, const char*);
+struct SettingsHandler
+{
+    const char* pattern;
+    settings_fn handler;
+    int len;
+    SettingsHandler(const char* pat, settings_fn fn) :  pattern(pat), handler(fn), len((int)strlen(pat)) {};
+    bool Handle(sSettings& rSettings, const char* arg) const
+    {
+        if(strncmp(arg, pattern, len) == 0)
+        {
+            handler(rSettings, arg + len);
+            return true;
+        }
+        return false;
+    }
+};
+
 int main(int argc, char* argv[])
 {
-    if(argc < 2)
-    {
-        puts("Missing source image argument");
-        return 1;
-    }
-    if(argc < 3)
-    {
-        puts("Missing vertex count argument");
-        return 1;
-    }
-
+    Renderer renderer;
     seedRandom();
 
-    Image img;
-    img.load(argv[1]);
-    Renderer renderer(img, 4, 5, "Image Decompiler", atoi(argv[2]), argv[1]);
-    img.free();
+    {
+        sSettings settings;
+        const SettingsHandler handlers[] = 
+        {
+            SettingsHandler("-image=", [](sSettings& set, const char* val)
+            {
+                set.m_imageName = val;
+            }),
+            SettingsHandler("-brush=", [](sSettings& set, const char* val)
+            {
+                set.m_brushName = val;
+            }),
+            SettingsHandler("-maxPrimitives=", [](sSettings& set, const char* val)
+            {
+                set.m_maxPrimitives = atoi(val);
+            }),
+            SettingsHandler("-framesPerPrimitive=", [](sSettings& set, const char* val)
+            {
+                set.m_framesPerPrimitive = atoi(val);
+            }),
+            SettingsHandler("-secondsPerScreenshot=", [](sSettings& set, const char* val)
+            {
+                set.m_secondsPerScreenshot = atoi(val);
+            }),
+            SettingsHandler("-primAlpha=", [](sSettings& set, const char* val)
+            {
+                set.m_primAlpha = (float)atof(val);
+                set.m_primAlpha = glm::clamp(set.m_primAlpha, 0.001f, 1.0f);
+            })
+        };
+
+        for(int i = 1; i < argc; ++i)
+        {
+            for(const SettingsHandler& handler : handlers)
+            {
+                if(handler.Handle(settings, argv[i]))
+                {
+                    break;
+                }
+            }
+        }
+
+        Image img;
+        img.load(settings.m_imageName);
+        settings.m_width = img.width;
+        settings.m_height = img.height;
+
+        if(!img.image)
+        {
+            printf("Could not load image %s\n", settings.m_imageName);
+            return 1;
+        }
+
+        renderer.init(settings);
+    }
 
     while(renderer.Swap()){}
+
+    renderer.deinit();
 
     return 0;
 }
