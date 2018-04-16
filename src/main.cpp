@@ -172,6 +172,15 @@ struct Renderer
             }
             m_brushTex.Init(img);
         }
+
+        for(VertexBuffer& vb : m_vertices)
+        {
+            vb.reserve(m_settings.m_maxPrimitives * VerticesPerPrimitive);
+        }
+        for(TransformBuffer& tb : m_transforms)
+        {
+            tb.reserve(m_settings.m_maxPrimitives);
+        }
     }
    void deinit()
     {
@@ -274,13 +283,13 @@ struct Renderer
     {
         const vec4 color(randf(), randf(), randf(), 1.0f);
 
-        PrimTransform& xform = transforms.grow();
+        PrimTransform& xform = transforms.append();
         xform.Randomize();
 
         const int idx = vertices.count();
         for(int i = 0; i < VerticesPerPrimitive; ++i)
         {
-            vertices.grow();
+            vertices.append();
         }
         xform.Transform(&vertices[idx]);
         printf("Primitive count: %i\n", PrimitiveCount());

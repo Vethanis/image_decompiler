@@ -2,4 +2,3 @@
 
 rm -rf build
 rm -rf bin
-./compile.sh

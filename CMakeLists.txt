@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 # name of project
-project(meshing)
+project(ImageDecompiler)
 
 # add C++11 standard
 set(CMAKE_CXX_STANDARD 11)
@@ -44,8 +44,8 @@ endif()
 # wildcard add source files like so:
 file(GLOB SOURCES "src/*.cpp")
 
-add_executable(main ${SOURCES})
-target_link_libraries(main ${PROJECT_LINK_LIBS})
+add_executable(ImageDecompiler ${SOURCES})
+target_link_libraries(ImageDecompiler ${PROJECT_LINK_LIBS})
 
 # CMAKE_BINARY_DIR is same as CMAKE_SOURCE_DIR if building in-source, otherwise is the top level dir of build tree
 # CMAKE_SOURCE_DIR is dir where cmake was started aka top level source dir
@@ -56,7 +56,7 @@ target_link_libraries(main ${PROJECT_LINK_LIBS})
 
 
 # to add a file (or your wildcard source files) like so:
-#add_executable(main ${SOURCES})
+#add_executable(ImageDecompiler ${SOURCES})
 
 # to build your project do the following:
 

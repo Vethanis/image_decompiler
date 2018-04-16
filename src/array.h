@@ -149,32 +149,35 @@ struct Vector{
     const T& operator[](int idx)const{
         return _data[idx];
     }
+    void constructAndReplace(const int count)
+    {        
+        T* t = new T[count];
+        const int new_tail = _tail < count ? _tail : count;
+        for(int i = 0; i < new_tail; ++i)
+        {
+            t[i] = _data[i];
+        }
+        delete[] _data;
+        _data = t;
+        _capacity = count;
+        _tail = new_tail;
+    }
     void reserve(const int new_cap)
     {
-        const int new_tail = new_cap < _tail ? new_cap : _tail;
         if(!new_cap)
         {
-            delete[] _data;
-            _data = nullptr;
+            reset();
         }
-        else
+        else if(new_cap != _capacity)
         {
-            T* new_data = new T[new_cap];
-            for(int i = 0; i < new_tail; ++i)
-            {
-                new_data[i] = _data[i];
-            }
-            delete[] _data;
-            _data = new_data;
+            constructAndReplace(new_cap);
         }
-        _capacity = new_cap;
-        _tail = new_tail;
     }
     void resize(const int new_size)
     {
         if(new_size != _capacity)
         {
-            reserve(new_size);
+            constructAndReplace(new_size);
         }
         _tail = new_size;
     }
@@ -293,19 +296,6 @@ struct Vector{
     ~Vector(){
         delete[] _data;
     }
-    void copy(const Vector& other){
-        delete[] _data;
-        _data = nullptr;
-        _tail = other.count();
-        _capacity = other.capacity();
-        if(_capacity){
-            _data = new T[_capacity];
-            for(int i = 0; i < _tail; ++i)
-            {
-                _data[i] = other[i];
-            }
-        }
-    }
     void assume(Vector& other)
     {
         reset();
@@ -317,17 +307,15 @@ struct Vector{
         other._capacity = 0;
     }
     Vector& operator=(const Vector& other){
-        delete[] _data;
-        _data = nullptr;
-        _tail = other.count();
-        _capacity = other.capacity();
-        if(_capacity)
+        if(capacity() < other.capacity())
         {
-            _data = new T[_capacity];
-            for(int i = 0; i < _tail; ++i)
-            {
-                _data[i] = other[i];
-            }
+            clear();
+            constructAndReplace(other.capacity());
+        }
+        _tail = other.count();
+        for(int i = 0; i < _tail; ++i)
+        {
+            _data[i] = other[i];
         }
         return *this;
     }

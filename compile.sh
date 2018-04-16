@@ -4,7 +4,7 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
 if [ "$1" == "clean" ]; then
-    rm -rf build
+    ./clean.sh
 fi
 
 if [ ! -d "./build" ]; then
