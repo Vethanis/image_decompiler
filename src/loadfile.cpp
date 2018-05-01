@@ -14,7 +14,7 @@ void load_file(const char* path, Vector<char>& contents)
     
     fseek(f, 0, SEEK_END);
     const int sz = ftell(f);
-    contents.resize(sz + 1);
+    contents.resizeGrow(sz + 1);
     rewind(f);
     assert(fread(contents.begin(), sz, 1, f) == 1);
     fclose(f);

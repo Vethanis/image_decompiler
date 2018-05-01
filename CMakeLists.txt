@@ -42,7 +42,7 @@ endif()
 
 
 # wildcard add source files like so:
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB SOURCES "src/*.cpp" "src/*.c")
 
 add_executable(ImageDecompiler ${SOURCES})
 target_link_libraries(ImageDecompiler ${PROJECT_LINK_LIBS})

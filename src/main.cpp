@@ -16,6 +16,7 @@
 #include "framebuffer.h"
 #include "vertexbuffer.h"
 #include "mesh.h"
+#include "db.h"
 #include <cstring>
 
 #include <glm/gtx/matrix_transform_2d.hpp>
@@ -51,6 +52,9 @@ struct Renderer
     Texture m_texture;
     Texture m_brushTex;
     Mesh m_mesh;
+
+    DB::Context m_db;
+    DB::ID m_runId;
 
     static const vec4 m_square[VerticesPerPrimitive];
 
@@ -121,6 +125,7 @@ struct Renderer
 
     void init(const sSettings& settings)
     {
+
         m_settings = settings;
         m_window.init(m_settings.m_width, m_settings.m_height, m_settings.m_glMajor, m_settings.m_glMinor, m_settings.m_windowName);
         m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_settings.m_width), float(m_settings.m_height))));
@@ -157,21 +162,6 @@ struct Renderer
         glViewport(0, 0, m_settings.m_width, m_settings.m_height); DebugGL();
 
         Reset();
-        {
-            Image img;
-            img.load(m_settings.m_imageName);
-            m_texture.Init(img);
-        }
-        {
-            Image img;
-            img.load(m_settings.m_brushName);
-            if(!img.image)
-            {
-                printf("Could not load brush %s\n", m_settings.m_brushName);
-                exit(1);
-            }
-            m_brushTex.Init(img);
-        }
 
         for(VertexBuffer& vb : m_vertices)
         {
@@ -181,6 +171,50 @@ struct Renderer
         {
             tb.reserve(m_settings.m_maxPrimitives);
         }
+        
+        Image img;
+        img.load(m_settings.m_imageName);
+        m_texture.Init(img);
+
+        Image img2;
+        img2.load(m_settings.m_brushName);
+        if(!img2.image)
+        {
+            printf("Could not load brush %s\n", m_settings.m_brushName);
+            exit(1);
+        }
+        m_brushTex.Init(img2);
+
+        DB::Image db_src;
+        db_src.width = img.width;
+        db_src.height = img.height;
+        db_src.image = img.image;
+        db_src.Finalize();
+        
+        DB::Image db_brush;
+        db_brush.width = img2.width;
+        db_brush.height = img2.height;
+        db_brush.image = img2.image;
+        db_brush.Finalize();
+
+        DB::Run db_run;
+        db_run.source_image_id = db_src.id;
+        db_run.brush_image_id = db_brush.id;
+        sprintf(db_run.filename, "%s", m_settings.m_imageName);
+        sprintf(db_run.brushname, "%s", m_settings.m_brushName);
+        sprintf(db_run.username, "%s", getenv("USERNAME"));
+        db_run.time_begun = time(nullptr);
+        db_run.frames_per_primitive = m_settings.m_framesPerPrimitive;
+        db_run.seconds_between_screenshots = m_settings.m_secondsPerScreenshot;
+        db_run.max_primitives = m_settings.m_maxPrimitives;
+        db_run.primitive_alpha = m_settings.m_primAlpha;
+        db_run.Finalize();
+        m_runId = db_run.id;
+
+        DB::Open(m_db, "ImageDecompilerDB");
+        DB::Write(m_db, db_run);
+        DB::Write(m_db, db_src);
+        DB::Write(m_db, db_brush);
     }
    void deinit()
     {
@@ -198,6 +232,8 @@ struct Renderer
         m_texture.deinit();
         m_brushTex.deinit();
         m_window.deinit();
+
+        DB::Close(m_db);
     }
     int CurrentChoice() { return m_frontFrame; }
     void SaveImage()

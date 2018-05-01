@@ -173,7 +173,15 @@ struct Vector{
             constructAndReplace(new_cap);
         }
     }
-    void resize(const int new_size)
+    void resizeGrow(const int new_size)
+    {
+        if(new_size > _capacity)
+        {
+            constructAndReplace(new_size);
+        }
+        _tail = new_size;
+    }
+    void resizeTrim(const int new_size)
     {
         if(new_size != _capacity)
         {
