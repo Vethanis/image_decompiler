@@ -55,14 +55,14 @@ void DB::Close(DB::Context& ctx)
 
     const size_t num_records = ctx.m_metadata.count();
     fwrite(&num_records, sizeof(size_t), 1, pTmp);
-    const size_t header_begin = ftell(pTmp);
+    const uint32_t header_begin = ftell(pTmp);
     if(!ctx.m_sorted)
     {
         std::sort(ctx.m_metadata.begin(), ctx.m_metadata.end());
         ctx.m_sorted = true;
     }
     fwrite(ctx.m_metadata.begin(), sizeof(DB::Record), num_records, pTmp);
-    const size_t header_end = ftell(pTmp);
+    const uint32_t header_end = ftell(pTmp);
 
     Vector<u8> image_memory;
     for(DB::Record& record : ctx.m_metadata)

@@ -76,9 +76,9 @@ namespace DB
 
     struct Record
     {
-        ID id;
-        eTable table=eRun;
-        size_t begin=0;
+        ID          id;
+        eTable      table = eRun;
+        uint32_t    begin = 0;
 
         bool operator <(const Record& other) const { return id <  other.id; }
         bool operator==(const Record& other) const { return id == other.id; }
