@@ -3,8 +3,10 @@
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
+rm -rf bin
+
 if [ "$1" == "clean" ]; then
-    ./clean.sh
+    rm -rf build
 fi
 
 if [ ! -d "./build" ]; then
@@ -15,7 +17,6 @@ if [ ! -d "./build" ]; then
 fi
 
 TYPE="Release"
-
 if [ "$1" == "debug" ] || [ "$2" == "debug" ] ; then
     TYPE="Debug"
 fi
@@ -29,16 +30,19 @@ fi
 GLSL="src/*.glsl"
 DLL="lib/*.dll"
 
-mkdir -p bin/Release
-mkdir -p bin/Debug
-mkdir -p bin/Release/screenshots
-mkdir -p bin/Debug/screenshots
-
-cp $GLSL bin/Release
-cp $GLSL bin/Debug
-cp $DLL bin/Release
-cp $DLL bin/Debug
-cp run.* bin/Release
-cp run.* bin/Debug
-cp assets/* bin/Release
-cp assets/* bin/Debug
+if [ $TYPE == "Debug" ]; then
+    mkdir -p bin/Debug
+    mkdir -p bin/Debug/screenshots
+    cp $GLSL bin/Debug
+    cp $DLL bin/Debug
+    cp run.* bin/Debug
+    cp assets/* bin/Debug
+else 
+    mkdir -p bin/Release
+    mkdir -p bin/Release/screenshots
+    cp $GLSL bin/Release
+    cp $DLL bin/Release
+    cp run.* bin/Release
+    cp assets/* bin/Release
+    rm bin/Release/thumbs.db
+fi

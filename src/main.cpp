@@ -35,30 +35,32 @@ struct sSettings
     const char* m_imageName = "example.png";
     const char* m_brushName = "brush.png";
     const char* m_windowName = "Image Decompiler";
-    unsigned m_glMajor = 4;
-    unsigned m_glMinor = 5;
-    unsigned m_width = 0, m_height = 0;
-    unsigned m_secondsPerScreenshot = 60 * 3;
-    unsigned m_framesPerPrimitive = 250;
-    int m_maxPrimitives = 1000;
-    float m_primAlpha = 0.75f;
+    uint32_t    m_glMajor = 4;
+    uint32_t    m_glMinor = 5;
+    uint32_t    m_width = 0;
+    uint32_t    m_height = 0;
+    uint32_t    m_secondsPerScreenshot = 60 * 3;
+    uint32_t    m_framesPerPrimitive = 250;
+    int32_t     m_maxPrimitives = 1000;
+    float       m_primAlpha = 0.75f;
+    bool        m_allAtOnce = false;
 };
 
 struct Renderer
 {
-    enum eConstants : int
+    enum eConstants : int32_t
     {
-        NumChoices = 8,
-        VerticesPerPrimitive = 6,
+        NumChoices              = 8,
+        VerticesPerPrimitive    = 6,
     };
 
-    Window m_window;
-    GLProgram m_shader;
-    GLProgram m_primShader;
-    GLProgram m_diffShader;
-    Texture m_texture;
-    Texture m_brushTex;
-    Mesh m_mesh;
+    Window      m_window;
+    GLProgram   m_shader;
+    GLProgram   m_primShader;
+    GLProgram   m_diffShader;
+    Texture     m_texture;
+    Texture     m_brushTex;
+    Mesh        m_mesh;
 
     DB_EXT_ONLY(
         DB::Context m_db;
@@ -67,46 +69,51 @@ struct Renderer
 
     static const vec4 m_square[VerticesPerPrimitive];
 
-    Framebuffer m_framebuffers[NumChoices];
-    Framebuffer m_diffbuffers[NumChoices];
-    VertexBuffer m_vertices[NumChoices];
+    Framebuffer     m_framebuffers[NumChoices];
+    Framebuffer     m_diffbuffers[NumChoices];
+    VertexBuffer    m_vertices[NumChoices];
 
     struct PrimTransform
     {
-        vec2 translation = vec2(0.0f);
-        vec2 scale = vec2(0.01f);
-        float rotation = 0.0f;
+        vec2 translation    = vec2(0.0f);
+        vec2 scale          = vec2(0.01f);
+        float rotation      = 0.0f;
 
-        void Randomize()
+        void Randomize(uint32_t count = 1)
         {
-            switch(randu() % 3)
+            for(uint32_t i = 0; i < count; ++i)
             {
-                case 0: 
+                switch(randu() % 3)
                 {
-                    vec2 nTranslation = translation;
-                    *(&nTranslation.x + randu() % 2) = 1.1f * randf2();
-                    translation = glm::mix(translation, nTranslation, randf());
+                    case 0: 
+                    {
+                        vec2 nTranslation = translation;
+                        *(&nTranslation.x + randu() % 2) = 1.1f * randf2();
+                        translation = glm::mix(translation, nTranslation, randf());
+                    }
+                    break;
+                    case 1: 
+                    {
+                        vec2 nScale = scale;
+                        *(&nScale.x + randu() % 2) = randf();
+                        scale = glm::mix(scale, nScale, randf());
+                    }
+                    break;
+                    case 2: 
+                    {
+                        float nTranslation = randf() * 3.141592f * 2.0f;
+                        rotation = glm::mix(rotation, nTranslation, randf());
+                    };
+                    break;
                 }
-                break;
-                case 1: 
-                {
-                    vec2 nScale = scale;
-                    *(&nScale.x + randu() % 2) = randf();
-                    scale = glm::mix(scale, nScale, randf());
-                }
-                break;
-                case 2: 
-                {
-                    float nTranslation = randf() * 3.141592f * 2.0f;
-                    rotation = glm::mix(rotation, nTranslation, randf());
-                };
-                break;
             }
         }
         void Transform(Vertex* pVerts) const
         {
-            const mat3 transform = glm::translate(mat3(), translation) * glm::rotate(mat3(), rotation) * glm::scale(mat3(), scale);
-            for(int i = 0; i < VerticesPerPrimitive; ++i)
+            const mat3 transform = glm::translate(mat3(), translation) * 
+                glm::rotate(mat3(), rotation) * 
+                glm::scale(mat3(), scale);
+            for(int32_t i = 0; i < VerticesPerPrimitive; ++i)
             {
                 const vec4& sqr = m_square[i];
                 const vec3 pos = transform * vec3(sqr.x, sqr.y, 1.0f);
@@ -117,27 +124,32 @@ struct Renderer
     typedef Vector<PrimTransform> TransformBuffer;
     TransformBuffer m_transforms[NumChoices];
 
-    sSettings m_settings;
+    sSettings       m_settings;
 
-    double m_currentDifference = 0.0;
+    double          m_currentDifference = 0.0;
 
-    unsigned m_frontFrame = 0;
-    unsigned m_frameIdx = 0;
-    int m_topMip=0;
-    int m_imageId = 0;
+    time_t          m_lastScreenshot = 0;
 
-    time_t m_lastScreenshot = 0;
+    uint32_t        m_frontFrame = 0;
+    uint32_t        m_frameIdx = 0;
+    int32_t         m_topMip=0;
+    int32_t         m_imageId = 0;
 
-    bool m_paused = false;
-    bool m_showSource = false;
-    bool m_viewDiff = false;
+    bool            m_paused = false;
+    bool            m_showSource = false;
+    bool            m_viewDiff = false;
 
     void init(const sSettings& settings)
     {
 
         m_settings = settings;
-        m_window.init(m_settings.m_width, m_settings.m_height, m_settings.m_glMajor, m_settings.m_glMinor, m_settings.m_windowName);
-        m_topMip = (int)glm::floor(glm::log2(glm::max(float(m_settings.m_width), float(m_settings.m_height))));
+        m_window.init(
+            m_settings.m_width, 
+            m_settings.m_height, 
+            m_settings.m_glMajor, 
+            m_settings.m_glMinor, 
+            m_settings.m_windowName);
+        m_topMip = (int32_t)glm::floor(glm::log2(glm::max(float(m_settings.m_width), float(m_settings.m_height))));
         Input::SetWindow(m_window.getWindow());
         Input::Poll();
         const char* screenShaders[] = {
@@ -172,15 +184,25 @@ struct Renderer
 
         Reset();
 
-        for(VertexBuffer& vb : m_vertices)
+        for(uint32_t i = 0u; i < NELEM(m_transforms); ++i)
         {
-            vb.reserve(m_settings.m_maxPrimitives * VerticesPerPrimitive);
+            if(m_settings.m_allAtOnce)
+            {
+                m_vertices[i].resizeGrow(m_settings.m_maxPrimitives * VerticesPerPrimitive);
+                m_transforms[i].resizeGrow(m_settings.m_maxPrimitives);
+                for(int32_t j = 0; j < m_settings.m_maxPrimitives; ++j)
+                {
+                    m_transforms[i][j].Randomize(100);
+                    m_transforms[i][j].Transform(&m_vertices[i][j * VerticesPerPrimitive]);
+                }
+            }
+            else
+            {
+                m_vertices[i].reserve(m_settings.m_maxPrimitives * VerticesPerPrimitive);
+                m_transforms[i].reserve(m_settings.m_maxPrimitives);
+            }
         }
-        for(TransformBuffer& tb : m_transforms)
-        {
-            tb.reserve(m_settings.m_maxPrimitives);
-        }
-        
+
         Image img;
         img.load(m_settings.m_imageName);
         m_texture.Init(img);
@@ -248,7 +270,7 @@ struct Renderer
             DB::Close(m_db);
         );
     }
-    int CurrentChoice() { return m_frontFrame; }
+    int32_t CurrentChoice() { return m_frontFrame; }
     void SaveImage()
     {
         if((m_frameIdx & 1023) == 0)
@@ -258,7 +280,7 @@ struct Renderer
             if(duration > time_t(m_settings.m_secondsPerScreenshot))
             {
                 char filename[64] = { 0 };
-                for(int i = 0; i < 63 && m_settings.m_imageName[i]; ++i)
+                for(int32_t i = 0; i < 63 && m_settings.m_imageName[i]; ++i)
                 {
                     if(m_settings.m_imageName[i] == '.')
                         break;
@@ -272,7 +294,7 @@ struct Renderer
             }
         }
     }
-    void CommitChange(int idx, double diff)
+    void CommitChange(int32_t idx, double diff)
     {
         m_frontFrame = idx;
         m_currentDifference = diff;
@@ -281,7 +303,7 @@ struct Renderer
             printf("Difference: %f\n", m_currentDifference);
         }
     }
-    int PrimitiveCount()
+    int32_t PrimitiveCount()
     {
         return m_transforms[CurrentChoice()].count();
     }
@@ -293,8 +315,8 @@ struct Renderer
         }
 
         Vertex* primBegin = nullptr;
-        const int num_prims = PrimitiveCount();
-        int idx = VerticesPerPrimitive * (num_prims - 1);
+        const int32_t num_prims = PrimitiveCount();
+        int32_t idx = VerticesPerPrimitive * (num_prims - 1);
         if(num_prims == m_settings.m_maxPrimitives)
         {
             idx = VerticesPerPrimitive * (randu() % num_prims);
@@ -304,7 +326,7 @@ struct Renderer
             float pos = randf();
             pos = pos * pos;
             pos = 1.0f - pos;
-            idx = int(float(VerticesPerPrimitive) * pos * float(num_prims));
+            idx = int32_t(float(VerticesPerPrimitive) * pos * float(num_prims));
             idx = glm::clamp(idx, 0, num_prims - 1);
         }
 
@@ -316,7 +338,7 @@ struct Renderer
             vec4 color = primBegin->color;
             *(&color.x + randu() % 3) = randf();
             color = glm::mix(primBegin->color, color, randf());
-            for(int i = 0; i < VerticesPerPrimitive; ++i)
+            for(int32_t i = 0; i < VerticesPerPrimitive; ++i)
             {
                 primBegin[i].color = color;
             }
@@ -333,10 +355,10 @@ struct Renderer
         const vec4 color(randf(), randf(), randf(), 1.0f);
 
         PrimTransform& xform = transforms.append();
-        xform.Randomize();
+        xform.Randomize(100);
 
-        const int idx = vertices.count();
-        for(int i = 0; i < VerticesPerPrimitive; ++i)
+        const int32_t idx = vertices.count();
+        for(int32_t i = 0; i < VerticesPerPrimitive; ++i)
         {
             vertices.append();
         }
@@ -350,7 +372,7 @@ struct Renderer
         Framebuffer::clear();
         m_mesh.draw();
     }
-    void DrawDifference(int idx)
+    void DrawDifference(int32_t idx)
     {
         m_diffbuffers[idx].bind();
         Framebuffer::clear();
@@ -358,7 +380,7 @@ struct Renderer
         m_diffShader.bindTexture(2, m_framebuffers[idx].m_attachments[0], "B");
         GLScreen::draw();
     }
-    double CalculateDifference(int idx)
+    double CalculateDifference(int32_t idx)
     {
         vec4 dest[4];
         m_diffbuffers[idx].download(dest, 0, m_topMip);
@@ -380,7 +402,7 @@ struct Renderer
             m_primShader.bind();
             m_primShader.bindTexture(9, m_brushTex.handle, "brush");
             m_primShader.setUniformFloat("primAlpha", m_settings.m_primAlpha);
-            for(int i = 0; i < NumChoices; ++i)
+            for(int32_t i = 0; i < NumChoices; ++i)
             {
                 if(i != CurrentChoice())
                 {
@@ -393,20 +415,20 @@ struct Renderer
         }
 
         m_diffShader.bind();
-        for(int i = 0; i < NumChoices; ++i)
+        for(int32_t i = 0; i < NumChoices; ++i)
         {
             DrawDifference(i);
         }
         Framebuffer::Barrier();
         double diffs[NumChoices];
-        for(int i = 0; i < NumChoices; ++i)
+        for(int32_t i = 0; i < NumChoices; ++i)
         {
             diffs[i] = CalculateDifference(i);
         }
 
-        int bestDiffIdx = CurrentChoice();
+        int32_t bestDiffIdx = CurrentChoice();
         double bestDiffVal = diffs[bestDiffIdx];
-        for(int i = 0; i < NumChoices; ++i)
+        for(int32_t i = 0; i < NumChoices; ++i)
         {
             if(diffs[i] < bestDiffVal)
             {
@@ -444,7 +466,7 @@ struct Renderer
     }
     void HandleInput()
     {
-        for(int key : Input::GetDownKeys())
+        for(int32_t key : Input::GetDownKeys())
         {
             switch(key)
             {
@@ -531,8 +553,8 @@ struct SettingsHandler
 {
     const char* pattern;
     settings_fn handler;
-    int len;
-    SettingsHandler(const char* pat, settings_fn fn) :  pattern(pat), handler(fn), len((int)strlen(pat)) {};
+    int32_t len;
+    SettingsHandler(const char* pat, settings_fn fn) :  pattern(pat), handler(fn), len((int32_t)strlen(pat)) {};
     bool Handle(sSettings& rSettings, const char* arg) const
     {
         if(strncmp(arg, pattern, len) == 0)
@@ -544,7 +566,7 @@ struct SettingsHandler
     }
 };
 
-int main(int argc, char* argv[])
+int32_t main(int32_t argc, char* argv[])
 {
     Renderer renderer;
     seedRandom();
@@ -577,10 +599,17 @@ int main(int argc, char* argv[])
             {
                 set.m_primAlpha = (float)atof(val);
                 set.m_primAlpha = glm::clamp(set.m_primAlpha, 0.001f, 1.0f);
+            }),
+            SettingsHandler("-allAtOnce=", [](sSettings& set, const char* val)
+            {
+                if(strcmp(val, "true") == 0)
+                {
+                    set.m_allAtOnce = true;
+                }
             })
         };
 
-        for(int i = 1; i < argc; ++i)
+        for(int32_t i = 1; i < argc; ++i)
         {
             for(const SettingsHandler& handler : handlers)
             {

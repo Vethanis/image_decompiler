@@ -77,6 +77,10 @@ Optional arguments:
   
   -secondsPerScreenshot=180
 
+  Start with all primitives on-screen
+
+  -allAtOnce=true
+
 
 ## Highlights
 
